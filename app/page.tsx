@@ -71,7 +71,7 @@ export default function MyApp() {
     const shallowTodo = [...main];
     shallowTodo.splice(id, 1);
     setMain(shallowTodo);
-    setRemaining(remaining);
+    setRemaining(remaining - 1);
   };
   const editHandler = (id: number, text: string) => {
     const shallowTodo = [...main];
