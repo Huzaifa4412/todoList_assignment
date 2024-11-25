@@ -70,29 +70,29 @@ export default function MyApp() {
   const delHandler = (id: number) => {
     const shallowTodo = [...main];
     shallowTodo.splice(id, 1);
-    setMain(shallowTodo);
     setRemaining(remaining - 1);
+    setMain(shallowTodo);
   };
   const editHandler = (id: number, text: string) => {
-    const shallowTodo = [...main];
+    let shallowTodo = [...main];
     setTodo(text);
-    shallowTodo.splice(id, 1);
     setMain(shallowTodo);
   };
   return (
     <div className={`todo-list-container `}>
       <div className="todo-list-header">
         <h1>TODO LIST</h1>
-        <button className="add-todo-btn uppercase ">ADD TODO</button>
       </div>
       <div className="inputBar  relative h-[100px]">
         <form
-          action=""
           id="form"
           onSubmit={(event) => {
             formHandler(event);
           }}
         >
+          <button className="add-todo-btn uppercase absolute right-5 -top-[50%] ">
+            ADD TODO
+          </button>
           <input
             autoFocus
             onChange={(e) => setTodo(e.target.value)}
