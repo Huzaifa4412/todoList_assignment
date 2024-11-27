@@ -9,7 +9,7 @@ export default function MyApp() {
   const [main, setMain] = useState<
     { todo: string; id: number; remaining: number; complete: boolean }[]
   >(
-    localStorage.getItem("next-todo")
+    typeof window !== "undefined" && localStorage.getItem("next-todo")
       ? JSON.parse(localStorage.getItem("next-todo") || "[]")
       : []
   );
