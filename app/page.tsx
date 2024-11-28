@@ -1,85 +1,93 @@
 "use client";
 import React, { useEffect, useState } from "react";
-
 import { MdEdit } from "react-icons/md";
 import { MdDelete } from "react-icons/md";
+
 export default function MyApp() {
   const [todo, setTodo] = useState("");
   const [complete, setComplete] = useState(false);
   const [main, setMain] = useState<
     { todo: string; id: number; remaining: number; complete: boolean }[]
-  >(
-    typeof window !== "undefined" && localStorage.getItem("next-todo")
-      ? JSON.parse(localStorage.getItem("next-todo") || "[]")
-      : []
-  );
+  >([]);
+  const [remaining, setRemaining] = useState<number>(0);
+  const [editId, setEditId] = useState<number | null>(null);
 
-  const [remaining, setRemaining] = useState<number>(
-    main.length > 0 ? main[main.length - 1].remaining : 0
-  );
-  const [editId, setEditId] = useState<number | null>();
+  // Load data from localStorage once on initial client render
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedTodos = localStorage.getItem("next-todo");
+      if (storedTodos) {
+        const parsedTodos = JSON.parse(storedTodos);
+        setMain(parsedTodos);
+        setRemaining(parsedTodos.filter((todo: any) => !todo.complete).length);
+      }
+    }
+  }, []); // This effect runs only once after the initial render
+
+  // Save data to localStorage whenever 'main' or 'remaining' changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && main.length > 0) {
+      localStorage.setItem("next-todo", JSON.stringify(main));
+    }
+  }, [main]); // This effect runs whenever 'main' changes
 
   const formHandler = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!todo) {
-      return false;
-    } else if (todo && editId) {
-      console.log(editId);
+      return;
+    }
+
+    if (todo && editId) {
+      // Update the todo
       setMain(
         main.map((item) => {
           if (item.id === editId) {
             return { ...item, todo: todo };
           }
-          setEditId(null);
           return item;
         })
       );
+      setEditId(null);
     } else {
-      setRemaining(remaining + 1);
+      // Add a new todo
+
       setMain([
         ...main,
         { todo, id: Date.now(), remaining: remaining + 1, complete },
       ]);
     }
-    setTodo("");
+
+    setTodo(""); // Reset the input
   };
-  const initialTodo = (
-    <h2 className="text-[#eee] font-semibold text-center tracking-widest">
-      No Todos Were Added Yet 🥺
-    </h2>
-  );
-  useEffect(() => {
-    localStorage.setItem("next-todo", JSON.stringify(main));
-  }, [main, remaining]);
+
   const completeHandler = (
     event: React.ChangeEvent<HTMLInputElement>,
     id: number
   ) => {
-    if ((event.target as HTMLInputElement).checked) {
-      setRemaining(remaining - 1);
+    const checked = (event.target as HTMLInputElement).checked;
+    if (checked) {
       setComplete(true);
-      setMain((perv) =>
-        perv.map((item) => {
-          if (item.id === id) {
-            return { ...item, complete: true, remaining: remaining - 1 };
-          }
-          return item;
-        })
-      );
+      setRemaining(remaining - 1);
     } else {
-      setRemaining(remaining + 1);
       setComplete(false);
-      setMain((perv) =>
-        perv.map((item) => {
-          if (item.id === id) {
-            return { ...item, complete: false, remaining: remaining + 1 };
-          }
-          return item;
-        })
-      );
+      setRemaining(remaining + 1);
     }
+
+    setMain((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            complete: checked,
+            remaining: checked ? remaining - 1 : remaining + 1,
+          };
+        }
+        return item;
+      })
+    );
   };
+
   const renderTodo = main.map((item, idx) => {
     return (
       <li
@@ -91,12 +99,8 @@ export default function MyApp() {
           <label className="custom-checkbox">
             <input
               type="checkbox"
-              id="checkbox"
-              name="checkbox"
-              checked={main.length > 0 ? main[idx].complete : false}
-              onChange={(event) => {
-                completeHandler(event, item.id);
-              }}
+              checked={item.complete}
+              onChange={(event) => completeHandler(event, item.id)}
             />
             <span className="checkmark"></span>
           </label>
@@ -121,35 +125,32 @@ export default function MyApp() {
       </li>
     );
   });
+
   const delHandler = (id: number) => {
     const shallowTodo = [...main];
     const index = shallowTodo.findIndex((todo) => todo.id === id);
-    if (!(shallowTodo.length > 0 && shallowTodo[index].complete)) {
+    if (shallowTodo.length > 0 && !shallowTodo[index].complete) {
       setRemaining(remaining - 1);
-      main[main.length - 1].remaining = remaining - 1;
     }
 
     shallowTodo.splice(index, 1);
     setMain(shallowTodo);
   };
+
   const editHandler = (id: number) => {
     const findTodo = main.find((item) => item.id === id);
     setTodo(findTodo?.todo || "");
     setEditId(findTodo?.id);
   };
+
   return (
-    <div className={`todo-list-container `}>
+    <div className="todo-list-container">
       <div className="todo-list-header">
         <h1>TODO LIST</h1>
       </div>
-      <div className="inputBar  relative h-[100px]">
-        <form
-          id="form"
-          onSubmit={(event) => {
-            formHandler(event);
-          }}
-        >
-          <button className="add-todo-btn uppercase absolute right-5 -top-[50%] ">
+      <div className="inputBar relative h-[100px]">
+        <form id="form" onSubmit={formHandler}>
+          <button className="add-todo-btn uppercase absolute right-5 -top-[50%]">
             ADD TODO
           </button>
           <input
@@ -157,8 +158,7 @@ export default function MyApp() {
             onChange={(e) => setTodo(e.target.value)}
             placeholder="Enter your todo"
             value={todo}
-            className="w-[80%]  top-[50%] rounded-lg outline-none text-slate-200 placeholder:text-white placeholder:font-bold placeholder:uppercase placeholder:tracking-widest py-2 px-2
-             absolute left-[10%] inputBar"
+            className="w-[80%] top-[50%] rounded-lg outline-none text-slate-200 placeholder:text-white placeholder:font-bold placeholder:uppercase placeholder:tracking-widest py-2 px-2 absolute left-[10%] inputBar"
             type="text"
             name="todo"
             id="todo"
@@ -167,7 +167,7 @@ export default function MyApp() {
       </div>
       <div className="todo-list-body">
         <ul className="todo-list">
-          {main.length > 0 ? renderTodo : initialTodo}
+          {main.length > 0 ? renderTodo : <h2>No Todos Added Yet 🥺</h2>}
         </ul>
       </div>
       <div className="todo-list-footer">
@@ -178,7 +178,10 @@ export default function MyApp() {
           className="add-todo-btn uppercase hover:bg-red-500"
           onClick={() => {
             setMain([]);
-            window.location.reload();
+            setRemaining(0);
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("next-todo"); // clear localStorage when clearing all todos
+            }
           }}
         >
           Clear All
